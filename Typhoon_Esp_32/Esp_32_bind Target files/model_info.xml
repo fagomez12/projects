@@ -1,0 +1,1 @@
+<model_info><model_components><categories><category name="Signal Processing"><categories><category name="Sources"><components><component name="Clock1" type="Clock" /></components></category><category name="Sinks"><components><component name="Clock" type="Probe" /></components></category></categories></category></categories></model_components></model_info>
