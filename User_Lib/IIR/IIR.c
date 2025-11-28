@@ -7,14 +7,35 @@
  *
  * @author Felipe A. Gómez Olaya
  * @date 2025
- * @addtogroup iir_filter_module
- * @{
+ * @copyright
+ *  MIT License
+ *
+ * Copyright (c) 2025 FELIPE ANTONIO GÓMEZ OLAYA
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ * GitHub: https://github.com/fagomez12
  */
 
 //
 // Include Files
 //
-#include "typedef_lib.h"
 #include "IIR.h"
 
 //
@@ -22,32 +43,186 @@
 //
 
 //
-// iir_filter(IIR_FILTER *, float32): Applies an IIR filter to the current input sample.
+// xfn_IrrFilter_f32(): Applies an IIR filter to the current input sample in format float.
 //
-float32 iir_filter(IIR_FILTER *f, float32 new_input)
+float xfn_IrrFilter_f32(IIR_FILTER_f32_t *f, float new_input)
 {
-    Uint8 index1;
-    float32 output;
+    uint8_t index1;
+    double output;
     output = 0.0f;
-
+    // Error order
+    if (f->order < 1 || f->order > MAX_IIR_ORD_FILTER)
+        return 0;
+    // History data
     for (index1 = f->order; index1 > 0; index1--)
     {
         f->x[index1] = f->x[index1 - 1];
         f->y[index1] = f->y[index1 - 1];
     }
-
+    // Get new value
     f->x[0] = new_input;
+    // Apply SUM(x[n]*b[n])
     for (index1 = 0; index1 <= f->order; index1++)
     {
         output += (f->b[index1] * f->x[index1]);
     }
+    // Apply (-1)*SUM(y[n-1]*b[n])
     for (index1 = 1; index1 <= f->order; index1++)
     {
         output -= (f->a[index1] * f->y[index1]);
     }
+    // Handling Saturation Q15 and Update present value y[n]
+    f->y[0] = __IRRSATF32(output);
+    // return
+    return f->y[0];
+}
 
-    f->y[0] = output;
-    return output;
+//
+// xfn_IrrFilter_int16(): Applies an IIR filter to the current input sample in format int16_t.
+//
+int16_t xfn_IrrFilter_int16(IIR_FILTER_int16_t *f, int16_t new_input, int16_t coeff_scale)
+{
+    uint8_t index1;
+    int32_t output;
+    output = 0;
+    // Error order
+    if (f->order < 1 || f->order > MAX_IIR_ORD_FILTER)
+        return 0;
+    // History data
+    for (index1 = f->order; index1 > 0; index1--)
+    {
+        f->x[index1] = f->x[index1 - 1];
+        f->y[index1] = f->y[index1 - 1];
+    }
+    // Get new value
+    f->x[0] = new_input;
+    // Apply SUM(x[n]*b[n])
+    for (index1 = 0; index1 <= f->order; index1++)
+    {
+        output += (f->b[index1] * f->x[index1]);
+    }
+    // Apply (-1)*SUM(y[n-1]*b[n])
+    for (index1 = 1; index1 <= f->order; index1++)
+    {
+        output -= (f->a[index1] * f->y[index1]);
+    }
+    // Normalize
+    output /= (int32_t)coeff_scale;
+    // Handling Saturation int16_t and Update present value y[n]
+    f->y[0] = __IRRSATINT16(output);
+    // return value int32_t
+    return f->y[0];
+}
+
+//
+// xfn_IrrFilter_int32(): Applies an IIR filter to the current input sample in format int32_t.
+//
+int32_t xfn_IrrFilter_int32(IIR_FILTER_int32_t *f, int32_t new_input, int32_t coeff_scale)
+{
+    uint8_t index1;
+    int64_t output;
+    output = 0;
+    // Error order
+    if (f->order < 1 || f->order > MAX_IIR_ORD_FILTER)
+        return 0;
+    // History data
+    for (index1 = f->order; index1 > 0; index1--)
+    {
+        f->x[index1] = f->x[index1 - 1];
+        f->y[index1] = f->y[index1 - 1];
+    }
+    // Get new value
+    f->x[0] = new_input;
+    // Apply SUM(x[n]*b[n])
+    for (index1 = 0; index1 <= f->order; index1++)
+    {
+        output += (f->b[index1] * f->x[index1]);
+    }
+    // Apply (-1)*SUM(y[n-1]*b[n])
+    for (index1 = 1; index1 <= f->order; index1++)
+    {
+        output -= (f->a[index1] * f->y[index1]);
+    }
+    // Normalize
+    output /= (int64_t)coeff_scale;
+    // Handling Saturation int32_t and Update present value y[n]
+    f->y[0] = __IRRSATINT32(output);
+    // return value int16_t
+    return f->y[0];
+}
+
+//
+// xfn_IrrFilter_q15(): Applies an IIR filter to the current input sample in format Q15.
+//
+q15_t xfn_IrrFilter_q15(IIR_FILTER_q15_t *f, q15_t new_input)
+{
+    uint8_t index1;
+    q31_t output;
+    output = 0;
+    // Error order
+    if (f->order < 1 || f->order > MAX_IIR_ORD_FILTER)
+        return 0;
+    // History data
+    for (index1 = f->order; index1 > 0; index1--)
+    {
+        f->x[index1] = f->x[index1 - 1];
+        f->y[index1] = f->y[index1 - 1];
+    }
+    // Get new value
+    f->x[0] = new_input;
+    // Apply SUM(x[n]*b[n])
+    for (index1 = 0; index1 <= f->order; index1++)
+    {
+        output += (f->b[index1] * f->x[index1]); // Q15 * Q15 = Q30
+    }
+    // Apply (-1)*SUM(y[n-1]*b[n])
+    for (index1 = 1; index1 <= f->order; index1++)
+    {
+        output -= (f->a[index1] * f->y[index1]);
+    }
+    // Q31 to Q15
+    output >>= 15U;
+    // Handling Saturation Q15 and Update present value y[n]
+    f->y[0] = __IRRSATQ15(output);
+    // return value Q15
+    return f->y[0];
+}
+
+//
+// xfn_IrrFilter_q31(): Applies an IIR filter to the current input sample in format Q31.
+//
+q31_t xfn_IrrFilter_q31(IIR_FILTER_q31_t *f, q31_t new_input)
+{
+    uint8_t index1;
+    q63_t output;
+    output = 0;
+    // Error order
+    if (f->order < 1 || f->order > MAX_IIR_ORD_FILTER)
+        return 0;
+    // History data
+    for (index1 = f->order; index1 > 0; index1--)
+    {
+        f->x[index1] = f->x[index1 - 1];
+        f->y[index1] = f->y[index1 - 1];
+    }
+    // Get new value
+    f->x[0] = new_input;
+    // Apply SUM(x[n]*b[n])
+    for (index1 = 0; index1 <= f->order; index1++)
+    {
+        output += (f->b[index1] * f->x[index1]); // Q31 * Q31 = Q62
+    }
+    // Apply (-1)*SUM(y[n-1]*b[n])
+    for (index1 = 1; index1 <= f->order; index1++)
+    {
+        output -= (f->a[index1] * f->y[index1]);
+    }
+    // Q62 to Q31
+    output >>= 31U;
+    // Handling Saturation Q31 and Update present value y[n]
+    f->y[0] = __IRRSATQ31(output);
+    // return value Q15
+    return f->y[0];
 }
 
 /**
@@ -86,7 +261,7 @@ float32 iir_filter(IIR_FILTER *f, float32 new_input)
 #define DURATION 1 / 100     // Duration in seconds
 #define PI 3.1416            // PI value
 // Definition of filter
-IIR_FILTER iir_filter_500hz = {
+IIR_FILTER_f32_t t_IrrFilter500Hz = {
     .freq_sampling = 20e3,
     .freq_cutoff = 500,
     .order = 2,
@@ -95,7 +270,7 @@ IIR_FILTER iir_filter_500hz = {
     .x = {0},
     .y = {0},
 };
-int main(void)
+int16_t main(void)
 {
     FILE *file = fopen("output.csv", "w");
     if (file == NULL)
@@ -104,19 +279,19 @@ int main(void)
         return -1;
     }
     fprintf(file, "Time,Sine wave with noise,Sine wave filtered\n");
-    int16 total_samples = (int16)(SAMPLING_RATE * DURATION);
-    float32 t, sample, sample_filter;
-    for (int16 i = 0; i < total_samples; i++)
+    int16_t total_samples = (int16_t)(SAMPLING_RATE * DURATION);
+    float t, sample, sample_filter;
+    for (int16_t i = 0; i < total_samples; i++)
     {
-        t = (float32)i / SAMPLING_RATE;
+        t = (float)i / SAMPLING_RATE;
         sample = AMPLITUDE * sin(2.0 * PI * FREQUENCY * t) + sin(2.0 * PI * NOISE_FREQ * (t + (PI / 9)));
-        sample_filter = iir_filter(&iir_filter_500hz, sample);
+        sample_filter = xfn_IrrFilter_f32(&t_IrrFilter500Hz, sample);
         fprintf(file, "%.6f,%.4f,%.4f\n", t, sample, sample_filter);
         fflush(file);
     }
     fclose(file);
     // Be sure to have installed Python dependencies
-    int ret = system("python --version");
+    int16_t ret = system("python --version");
 
     if (ret != 0)
     {
@@ -130,4 +305,4 @@ int main(void)
     return 0;
 }
 #endif
-/** @} */ // end of IIR_Filter_Module
+// End of File
