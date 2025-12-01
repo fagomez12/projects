@@ -92,7 +92,7 @@ void vfn_InitSin_LUT_q15()
          * - Cast to q15_t (typically int16_t)
          */
         sq15_Sin_LUT[u16_Idx] =
-            (q15_t)(INT16_MAX * 0.3 * sinf(2.0f * PI_ * u16_Idx / SIN_LUT_SIZE));
+            (q15_t)(INT16_MAX * 0.5 * sinf(2.0f * PI_ * u16_Idx / SIN_LUT_SIZE));
     }
 }
 
@@ -147,27 +147,4 @@ q15_t xfn_GetCurrentSinVal(uint16_t u16_FreqSampl,
         return sq15_Sin_LUT[u16_LUP_Idx]; /**< Return sine value at index. */
     }
 }
-#if 0
-int main()
-{
-    uint16_t n = 0;
-    FILE *file = fopen("output.csv", "w");
-    if (file == NULL)
-    {
-        printf("Error opening file!\n");
-        return -1;
-    }
-
-    vfn_InitSin_LUT_q15();
-
-    while (n < 100)
-    {
-        fprintf(file, "%.6f,%d,%d\n", (float)n / 8000, xfn_GetCurrenSinVal(8000, 50, 0), xfn_GetCurrenSinVal(8000, 50, 90));
-        fflush(file);
-        n++;
-    }
-    fclose(file);
-    return 0;
-}
-#endif
 /* End of File */
